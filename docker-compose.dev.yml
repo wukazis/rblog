@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # MySQL数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: blog_mysql_dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: blog
+      MYSQL_USER: wukazi
+      MYSQL_PASSWORD: rewink123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    networks:
+      - blog_network_dev
+
+  # PHP应用服务
+  app:
+    build: .
+    container_name: blog_app_dev
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./logs:/var/log/apache2
+    depends_on:
+      - mysql
+    networks:
+      - blog_network_dev
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=blog
+      - DB_USER=wukazi
+      - DB_PASS=rewink123
+      - APP_ENV=development
+      - APP_DEBUG=true
+
+  # phpMyAdmin管理界面
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: blog_phpmyadmin_dev
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: wukazi
+      PMA_PASSWORD: rewink123
+    depends_on:
+      - mysql
+    networks:
+      - blog_network_dev
+
+volumes:
+  mysql_data_dev:
+    driver: local
+
+networks:
+  blog_network_dev:
+    driver: bridge
